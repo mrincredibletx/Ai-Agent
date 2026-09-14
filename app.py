@@ -4,8 +4,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def load_pdf(file_path):
     loader = PDFPlumberLoader(file_path)
-    documents = loader.load()
-    return documents
+    return loader.load()
 
 
 def split_documents(documents, chunk_size=1000, chunk_overlap=200):
@@ -16,22 +15,3 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=200):
     )
 
     return text_splitter.split_documents(documents)
-
-
-if __name__ == "__main__":
-
-    pdf_path = "sample.pdf"
-
-    print("Loading PDF...")
-
-    documents = load_pdf(pdf_path)
-
-    print(f"PDF loaded successfully!")
-    print(f"Total pages: {len(documents)}")
-
-    chunks = split_documents(documents)
-
-    print(f"Total chunks: {len(chunks)}")
-
-    print("\nFirst chunk:")
-    print(chunks[0].page_content)
