@@ -1,72 +1,23 @@
-from fastapi import FastAPI, UploadFile, File
-from pypdf import PdfReader
-import tempfile
-import os
+from langchain_community.document_loaders import PDFPlumberLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
-app = FastAPI()
+def load_pdf(file_path):
+    loader = PDFPlumberLoader(file_path)
+    return loader.load()
 
-
-@app.get("/")
-def home():
-    return {
-        "message": "PDF Agent API is running"
-    }
-
-
-@app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
-
-    # Check PDF
-    if not file.filename.lower().endswith(".pdf"):
-        return {
-            "error": "Only PDF files are allowed"
-        }
-
-    # Read uploaded file
-    contents = await file.read()
-
-    # Create temporary PDF
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=".pdf"
-    ) as temp_file:
-
-        temp_file.write(contents)
-        temp_path = temp_file.name
-
-    try:
-
-        # Read PDF
-        reader = PdfReader(temp_path)
-
-        text = ""
-
-        # Extract text from every page
-        for page in reader.pages:
-
-            page_text = page.extract_text()
-
-            if page_text:
-                text += page_text + "\n"
-
-        return {
-            "filename": file.filename,
-            "pages": len(reader.pages),
-            "text": text
-        }
-
-    finally:
-
-        # Delete temporary file
-        os.remove(temp_path)
+# Split the loaded documents into smaller chunks
+def split_documents(documents, chunk_size=1000, chunk_overlap=200):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        length_function=len
+    )
+    return text_splitter.split_documents(documents) 
 
 
-if __name__ == "__main__":
-
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="127.0.0.1",
-        port=8000
+def create_embeddings_model():
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"local_files_only": True},
     )
